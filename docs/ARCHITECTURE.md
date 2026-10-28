@@ -13,7 +13,7 @@ The guiding rule is: **observe first, propose second, modify only with clear bou
 - `src/sandbox/client.ts`: provisional client for a future remote sandbox service
 - `src/sandbox/index.ts`: sandbox client exports
 
-The CLI's local model connection defaults to `http://127.0.0.1:11434`. It can be overridden with `OMNIDEV_OLLAMA_URL`. Model selection for CLI generation can use an explicit command option or `OMNIDEV_MODEL` once supported by the command.
+The CLI's local model connection defaults to `http://127.0.0.1:11434`. It can be overridden with `OMNIDEV_OLLAMA_URL`. The `ask` command supports an explicit `--model` option and the `OMNIDEV_MODEL` environment variable.
 
 ## intended layers
 
@@ -46,6 +46,15 @@ Do not prematurely create all layers as empty abstractions. Add each when a conc
 - mock network boundaries in automated tests
 - no claim of success unless the underlying operation actually succeeded
 - prefer standard platform APIs and minimal dependencies
+
+## design references
+
+- [roadmap](../ROADMAP.md): milestones and acceptance criteria
+- [change plan format](CHANGE_PLAN_FORMAT.md): proposed safe edit format for phase 3
+- [model routing](MODEL_ROUTING.md): local-first provider selection proposal for phase 5
+- [threat model](THREAT_MODEL.md): initial threats and required mitigations
+
+These documents define intended behavior only. They do not indicate that the described features have been implemented or verified.
 
 ## decisions still open
 
