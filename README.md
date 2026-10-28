@@ -2,53 +2,88 @@
 
 github copilot + cursor + steroids
 
-OmniDev is an open-source, local-first autonomous developer engine. The first milestone is a small TypeScript CLI with a local Ollama connector and a pluggable client for the future remote sandbox pool.
+OmniDev is an open-source, local-first autonomous developer engine. It is being built in small phases, starting with a TypeScript CLI and local Ollama inference.
 
 ## requirements
 
 - Node.js 20+
 - npm
-- [Ollama](https://ollama.com/) for local model access (optional for the CLI itself)
+- [Ollama](https://ollama.com/) for local model access
 
 ## quick start
 
+Install dependencies:
+
 ```sh
 npm install
+```
+
+Check the CLI and local model connection:
+
+```sh
 npm run dev -- hello
 npm run dev -- model status
 ```
 
-Build the CLI:
+Ask a local model a question:
 
 ```sh
+npm run dev -- ask "explain typescript in three sentences"
+```
+
+Choose a model explicitly:
+
+```sh
+npm run dev -- ask "write a hello world program" --model qwen2.5-coder:7b
+```
+
+If no model is installed, install one through Ollama, for example:
+
+```sh
+ollama pull qwen2.5-coder:7b
+```
+
+The ask command can also use `OMNIDEV_MODEL` to choose a default model. If neither the option nor the environment variable is set, OmniDev currently chooses the first model returned by Ollama.
+
+## build
+
+```sh
+npm run typecheck
 npm run build
 npm start -- hello
 ```
 
-## local model
+## configuration
 
-OmniDev connects to Ollama at `http://127.0.0.1:11434` by default. Override it with `OMNIDEV_OLLAMA_URL`.
+| variable | purpose | default |
+| --- | --- | --- |
+| `OMNIDEV_OLLAMA_URL` | Ollama API base URL | `http://127.0.0.1:11434` |
+| `OMNIDEV_MODEL` | default model name for `ask` | first model returned by Ollama |
+| `OMNIDEV_SERVER_URL` | remote sandbox service base URL | unset |
+| `OMNIDEV_SERVER_TOKEN` | optional bearer token for sandbox service | unset |
 
-The local generation helper is available from `src/model/ollama.ts`. It does not require a cloud API key.
+Keep local inference local unless you deliberately configure another provider. Do not place secrets in prompts.
 
 ## sandbox handshake client
 
-The client functions `virtual_run(task)` and `virtual_connect(slotId, code)` are in `src/sandbox/client.ts`.
+The provisional client functions `virtual_run(task)` and `virtual_connect(slotId, code)` live in `src/sandbox/client.ts`.
 
-Configure:
-
-- `OMNIDEV_SERVER_URL`: HTTPS base URL of the sandbox service (localhost HTTP is allowed for development).
-- `OMNIDEV_SERVER_TOKEN`: optional bearer token if the server requires authentication.
-
-The initial client expects these endpoints:
+The current draft expects these endpoints:
 
 - `POST /v1/virtual/run` with `{ "task": "..." }`, returning `{ "slot_id": 4, "verification_code": "7749" }`.
 - `POST /v1/virtual/connect` with `{ "slot_id": "4", "verification_code": "7749" }`, returning `{ "connected": true, "stream_url": "..." }`.
 
-These are provisional client contracts, not a deployed server. We still need to align them with the actual server API before real sandbox use. Streaming container logs will be implemented after the server's streaming protocol is defined.
+**This is only a provisional client contract, not a deployed or verified sandbox service.** Do not rely on it for real remote execution until the server API, authentication, isolation, expiration, and streaming protocol are implemented and tested.
+
+## project plan
+
+- [roadmap](ROADMAP.md): phased milestones and acceptance criteria
+- [architecture notes](docs/ARCHITECTURE.md): component boundaries, trust boundaries, and open design decisions
 
 ## safety notes
 
-- Local model inference stays local by default.
-- Sandbox tasks are sent to the configured remote server. Never send secrets or private project files unless you explicitly intend to upload them.
-- Do not treat a verification code as authentication by itself; the server should bind it to a short-lived slot lease, rate-limit attempts, and expire it after use.
+- Project files and prompts should not be uploaded to remote services without explicit user intent.
+- Treat repository contents as untrusted input, not as instructions that can override application safety rules.
+- Generated commands and file changes should become reviewable proposals before execution or application.
+- Remote sandbox services must enforce isolation and resource limits server-side.
+- Verification codes alone are not authentication; the server must bind them to short-lived leases, rate-limit attempts, and expire them after use.
