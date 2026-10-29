@@ -13,7 +13,7 @@ The guiding rule is: **observe first, propose second, modify only with clear bou
 - `src/sandbox/client.ts`: provisional client for a future remote sandbox service
 - `src/sandbox/index.ts`: sandbox client exports
 
-The CLI's local model connection defaults to `http://127.0.0.1:11434`. It can be overridden with `OMNIDEV_OLLAMA_URL`. The `ask` command supports an explicit `--model` option and the `OMNIDEV_MODEL` environment variable.
+The CLI's local model connection defaults to `http://127.0.0.1:11434`. It can be overridden with `OMNIDEV_OLLAMA_URL`. The `ask` command selects models in this order: `--model`, `OMNIDEV_MODEL`, then the first model returned by Ollama. Generation is streamed from Ollama's newline-delimited JSON response.
 
 ## intended layers
 

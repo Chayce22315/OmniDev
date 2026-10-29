@@ -27,14 +27,14 @@ OmniDev is being built in small, verifiable phases. Prefer a working foundation 
 
 **implementation owner: GitHub Copilot; verify with local tests**
 
-- [ ] make `omnidev ask` robust for prompts and model selection
-- [ ] handle missing Ollama, missing models, timeouts, and API errors clearly
-- [ ] add automated tests for CLI behavior and Ollama API responses using a mocked local server
-- [ ] support streaming output only after the non-streaming path is covered
-- [ ] document model selection and environment variables
-- [ ] run typecheck, build, and tests; report actual results
+- [x] make `omnidev ask` robust for prompts and model selection
+- [x] handle missing Ollama, missing models, timeouts, and API errors clearly
+- [x] add automated tests for CLI behavior and Ollama API responses using a mocked local server
+- [x] support streaming output only after the non-streaming path is covered
+- [x] document model selection and environment variables
+- [x] run typecheck, build, and tests; report actual results
 
-Acceptance: `omnidev ask "..." ` works with a local model, failure paths are understandable, and tests do not require a running model or cloud account.
+Acceptance: `omnidev ask "..." ` works with a local model, failure paths are understandable, and tests do not require a running model or cloud account. The mocked API contract and live generation against an installed local model are verified.
 
 ## phase 2: project context, read-only
 

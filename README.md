@@ -37,13 +37,15 @@ Choose a model explicitly:
 npm run dev -- ask "write a hello world program" --model qwen2.5-coder:7b
 ```
 
+Responses are streamed to the terminal as the local model generates them. The `--model` option takes precedence over `OMNIDEV_MODEL`; if neither is set, OmniDev uses the first installed model.
+
 If no model is installed, install one through Ollama, for example:
 
 ```sh
 ollama pull qwen2.5-coder:7b
 ```
 
-The ask command can also use `OMNIDEV_MODEL` to choose a default model. If neither the option nor the environment variable is set, OmniDev currently chooses the first model returned by Ollama.
+The ask command reports offline Ollama, missing models, request timeouts, and malformed or failed API responses without printing response bodies or configured endpoint credentials. `npm test` runs the automated CLI and Ollama API tests against a local mock server; it does not require Ollama, a downloaded model, or internet access.
 
 ## build
 
