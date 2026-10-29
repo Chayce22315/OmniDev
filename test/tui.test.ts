@@ -89,9 +89,11 @@ test("colorless dashboard exposes project status, navigation, and keyboard short
     columns: 60,
     rows: 24
   });
+  assert.match(frame, /OMNI.*DEV.*LOCAL-FIRST DEVELOPER COCKPIT/);
   assert.match(frame, /C:\\work\\sample/);
   assert.match(frame, /Ollama\s+online/);
   assert.match(frame, /Ask AI/);
+  assert.match(frame, /◆.*\[1\].*Ask AI/);
   assert.match(frame, /Project summary/);
   assert.match(frame, /Ctrl\+C quit/);
   assert.doesNotMatch(frame, /\u001b\[(?:1;)?(?:31|32|33|36)m/);

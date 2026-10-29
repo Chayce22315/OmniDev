@@ -94,24 +94,27 @@ export function renderTuiFrame(
   const height = Math.max(12, state.rows || 24);
   const innerWidth = width - 4;
   const output: string[] = [
-    `${colorize(" OMNIDEV ", "1;36", state.color)} ${colorize("local developer engine", "2", state.color)}`,
+    `${colorize(" ◆ ", "1;35", state.color)}${colorize("OMNI", "1;36", state.color)}${colorize("DEV", "1;35", state.color)}  ${colorize("LOCAL-FIRST DEVELOPER COCKPIT", "2", state.color)}`,
     `${"─".repeat(Math.max(0, width - 1))}`,
-    `Project  ${state.root}`,
-    `Ollama   ${state.ollamaOnline ? colorize(state.ollamaLocal ? "online (local)" : "online (remote)", "32", state.color) : colorize("offline", "31", state.color)}${state.models.length ? `  ·  ${state.models.length} model(s)` : ""}`,
-    `Model    ${state.model}`,
+    `${colorize("⌂ Project", "1;36", state.color)}  ${state.root}`,
+    `${colorize("●", state.ollamaOnline ? "32" : "31", state.color)} Ollama   ${state.ollamaOnline ? colorize(state.ollamaLocal ? "online (local)" : "online (remote)", "32", state.color) : colorize("offline", "31", state.color)}${state.models.length ? `  ·  ${state.models.length} model(s)` : ""}`,
+    `${colorize("◇ Model", "1;35", state.color)}    ${state.model}`,
     ""
   ];
 
   if (screen === "dashboard") {
-    output.push(colorize("Dashboard", "1", state.color), "");
+    output.push(colorize("╭─ Dashboard", "1;36", state.color), "");
     menu.forEach((item, index) => {
       const selected = index === state.selectedMenu;
-      output.push(`${selected ? colorize("›", "36", state.color) : " "} ${index + 1}. ${selected ? colorize(item.label, "1;36", state.color) : item.label}`);
-      output.push(`    ${item.description}`);
+      const marker = selected ? colorize("◆", "1;35", state.color) : colorize("◇", "2", state.color);
+      const label = selected ? colorize(item.label, "1;36", state.color) : item.label;
+      output.push(`${marker}  ${colorize(`[${index + 1}]`, "2", state.color)}  ${label}`);
+      output.push(`   ${colorize("└", "2", state.color)} ${item.description}`);
     });
+    output.push("", colorize("A LOCAL WORKSPACE, READY TO BUILD", "2", state.color));
     if (!state.ollamaOnline && state.ollamaMessage) output.push("", colorize(state.ollamaMessage, "31", state.color));
   } else if (screen === "config") {
-    output.push(colorize("Configuration & status", "1", state.color), "");
+    output.push(colorize("⚙  Configuration & status", "1;36", state.color), "");
     output.push(`Project root: ${state.root}`);
     output.push(`Ollama: ${state.ollamaOnline ? (state.ollamaLocal ? "online (loopback; summaries enabled)" : "online (remote; summaries disabled)") : state.ollamaMessage ?? "offline"}`);
     output.push(`Model: ${state.model}`);
@@ -136,7 +139,7 @@ export function renderTuiFrame(
       output.push("", state.models.length ? "Press M to change model." : "No local models detected.");
     }
   } else if (screen === "ask") {
-    output.push(colorize("Ask AI", "1", state.color), "");
+    output.push(colorize("✧  Ask AI", "1;36", state.color), "");
     const transcript = state.messages.flatMap((message) => {
       const label = message.role === "you" ? "you" : "omnidev";
       return [
@@ -152,7 +155,7 @@ export function renderTuiFrame(
     output.push("", colorize("Prompt (Enter sends, Ctrl+J adds a line):", "2", state.color));
     output.push(...wrapText(state.draft || "› ", innerWidth));
   } else {
-    output.push(colorize("Project summary", "1", state.color), "");
+    output.push(colorize("▤  Project summary", "1;36", state.color), "");
     output.push(`Read-only discovery root: ${state.root}`);
     output.push("Files are bounded, filtered, and sent only to a loopback Ollama endpoint.");
     const summaryLines = state.messages
