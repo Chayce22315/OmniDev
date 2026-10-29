@@ -47,6 +47,15 @@ Do not prematurely create all layers as empty abstractions. Add each when a conc
 - no claim of success unless the underlying operation actually succeeded
 - prefer standard platform APIs and minimal dependencies
 
+## design references
+
+- [roadmap](../ROADMAP.md): milestones and acceptance criteria
+- [change plan format](CHANGE_PLAN_FORMAT.md): proposed safe edit format for phase 3
+- [model routing](MODEL_ROUTING.md): local-first provider selection proposal for phase 5
+- [threat model](THREAT_MODEL.md): initial threats and required mitigations
+
+These documents define intended behavior only. They do not indicate that the described features have been implemented or verified.
+
 ## decisions still open
 
 - how to represent structured file-change plans
