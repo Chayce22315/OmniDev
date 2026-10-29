@@ -1,6 +1,6 @@
 # initial threat model
 
-**status: design guidance; implementation and verification are still required**
+**status: design guidance; read-only project discovery controls are implemented and covered by tests. Phase 3+ controls remain proposals.**
 
 ## assets to protect
 
@@ -21,6 +21,8 @@ model output can be incorrect, manipulative, or malformed. treat it as data, not
 
 source files, comments, readmes, dependency scripts, and test fixtures can contain prompt injection or malicious instructions. content read from a repository must never override application rules or user approval requirements.
 
+Phase 2 sends only selected, bounded project context to loopback Ollama for a summary. The summarization prompt explicitly treats repository content as untrusted data. Discovery skips `.gitignore`-excluded files, common generated/dependency and credential directories, likely credential/key files, symlinks, binary/invalid UTF-8 files, and content beyond configured limits. It does not execute project code or write files.
+
 ### local tools
 
 file writes and shell commands can damage the workspace or machine. start with read-only inspection. require explicit approval for generated commands and file changes. apply timeouts, scope checks, and clear output capture.
@@ -37,12 +39,12 @@ the sandbox client is only a provisional handshake scaffold. a real service need
 
 | threat | required mitigation |
 | --- | --- |
-| path traversal or symlink escape | canonical workspace checks at write time; reject unsafe paths |
+| path traversal or symlink escape | phase 2 canonical root and in-root file checks, no-follow file opens where supported, and skipped symlinks; phase 3 must repeat checks at write time |
 | malicious generated shell command | approval by default; scoped cwd; timeout and cancellation |
 | prompt injection in repository files | treat file content as untrusted data; keep policy outside retrieved content |
-| accidental secret disclosure | redact sensitive errors; avoid prompt/log secrets; no remote upload by default |
+| accidental secret disclosure | skip likely credential/key files and directories, redact sensitive errors, avoid prompt/log secrets, and require loopback for project summaries |
 | malicious or malformed model response | schema validation; fail closed; do not execute raw model output |
-| request sent to wrong endpoint | explicit provider configuration; safe local defaults; disclose remote endpoints |
+| request sent to wrong endpoint | explicit provider configuration; safe local defaults; reject non-loopback endpoints for project summaries |
 | sandbox verification-code guessing | short-lived lease binding, rate limiting, one-time use, server-side authorization |
 | sandbox resource exhaustion | server-side cpu, memory, time, storage, and concurrency quotas |
 | interrupted multi-file edit | backups or transaction journal; report partial failures; support recovery |
@@ -50,7 +52,8 @@ the sandbox client is only a provisional handshake scaffold. a real service need
 
 ## minimum safe defaults
 
-- read-only project inspection before editing features exist
+- bounded, read-only project inspection before editing features exist
+- project summaries sent to loopback Ollama only
 - no generated command execution without approval
 - no automatic cloud fallback
 - no secret collection or transmission by default

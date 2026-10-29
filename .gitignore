@@ -29,8 +29,10 @@ npm-debug.log
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-# Build & Output Directories
+# Build & Output Directories (keep CLI runtime output installable from a source checkout)
 dist/
+!dist/
+!dist/**
 build/
 out/
 .next/

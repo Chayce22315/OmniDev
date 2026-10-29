@@ -1,19 +1,42 @@
 {
   "name": "omnidev",
   "version": "0.1.0",
-  "private": true,
   "description": "local-first autonomous developer engine",
+  "author": "Chayce22315",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Chayce22315/OmniDev.git"
+  },
+  "homepage": "https://github.com/Chayce22315/OmniDev#readme",
+  "bugs": {
+    "url": "https://github.com/Chayce22315/OmniDev/issues"
+  },
+  "keywords": [
+    "local-first",
+    "ollama",
+    "developer-tools",
+    "tui",
+    "ai"
+  ],
   "type": "module",
+  "files": [
+    "dist",
+    "docs",
+    "LICENSE",
+    "README.md",
+    "ROADMAP.md"
+  ],
   "bin": {
     "omnidev": "./dist/index.js"
   },
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "test": "tsx --test test/ollama.test.ts",
+    "prepare": "npm run build",
+    "test": "tsx --test test/ollama.test.ts test/project.test.ts test/tui.test.ts test/cli.test.ts test/package.test.ts",
     "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json"
   },
   "engines": {
     "node": ">=20.0.0"
