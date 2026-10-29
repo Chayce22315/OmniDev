@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { checkOllama, generateLocal } from "./model/ollama.js";
+import { checkOllama, streamLocal } from "./model/ollama.js";
 
 const cli = new Command();
 
@@ -43,7 +43,7 @@ cli
       return;
     }
 
-    const modelName = options.model ?? process.env.OMNIDEV_MODEL ?? status.models[0];
+    const modelName = options.model?.trim() || process.env.OMNIDEV_MODEL?.trim() || status.models[0];
     if (!modelName) {
       console.error("no local models found. install one first, for example: ollama pull qwen2.5-coder:7b");
       process.exitCode = 1;
@@ -54,10 +54,15 @@ cli
     console.log("");
 
     try {
-      const response = await generateLocal(prompt, modelName);
-      console.log(response || "(the model returned an empty response)");
+      let receivedOutput = false;
+      await streamLocal(prompt, modelName, (chunk) => {
+        process.stdout.write(chunk);
+        receivedOutput ||= chunk.length > 0;
+      });
+      if (!receivedOutput) process.stdout.write("(the model returned an empty response)");
+      process.stdout.write("\n");
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = error instanceof Error ? error.message : "unknown error";
       console.error(`model request failed: ${message}`);
       process.exitCode = 1;
     }
@@ -71,7 +76,7 @@ model
   .action(async () => {
     const result = await checkOllama();
     if (result.ok) {
-      console.log(`ollama: online (${result.url})`);
+      console.log("ollama: online");
       if (result.models.length === 0) {
         console.log("models: none found; install one with `ollama pull <model>`");
       } else {
