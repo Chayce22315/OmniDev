@@ -36,17 +36,19 @@ OmniDev is being built in small, verifiable phases. Prefer a working foundation 
 
 Acceptance: `omnidev ask "..." ` works with a local model, failure paths are understandable, and tests do not require a running model or cloud account. The mocked API contract and live generation against an installed local model are verified.
 
-## phase 2: project context, read-only
+## phase 2: project intelligence, TUI, and installable CLI
 
 **implementation owner: GitHub Copilot; verify with tests**
 
-- [ ] detect the current working directory
-- [ ] add an explicit command to summarize a project using a bounded file list
-- [ ] respect ignore rules and skip generated, binary, and oversized files
-- [ ] keep file access read-only in this phase
-- [ ] test path handling, ignore rules, and size limits
+- [x] detect the current working directory and allow selecting a project root
+- [x] add an explicit command to summarize a project using local model inference and a bounded file list
+- [x] respect `.gitignore` and skip generated, sensitive, binary, and oversized files
+- [x] keep project discovery read-only and prevent symlink escapes
+- [x] test path handling, ignore rules, file filtering, and size limits
+- [x] provide an interactive TUI for local chat, model switching, and project summaries
+- [x] package the CLI using npm's standard `bin` installation mechanism
 
-Acceptance: project context is gathered predictably without editing files or uploading content.
+Acceptance: developers can install and run `omnidev`, interact with local models through the terminal UI, and summarize bounded project context without modifying files or sending source to a remote service.
 
 ## phase 3: safe file changes
 

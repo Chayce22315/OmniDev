@@ -13,6 +13,25 @@ function ollamaBaseUrl(): string {
   return (process.env.OMNIDEV_OLLAMA_URL ?? "http://127.0.0.1:11434").replace(/\/+$/, "");
 }
 
+export function isLocalOllamaConfigured(): boolean {
+  try {
+    const url = new URL(ollamaBaseUrl());
+    const hostname = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+    return (
+      (url.protocol === "http:" || url.protocol === "https:") &&
+      !url.username &&
+      !url.password &&
+      (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1")
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function selectOllamaModel(models: string[], explicitModel?: string): string | undefined {
+  return explicitModel?.trim() || process.env.OMNIDEV_MODEL?.trim() || models[0];
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -155,10 +174,14 @@ export async function streamLocal(
   prompt: string,
   model: string,
   onChunk: (chunk: string) => void,
-  timeoutMs = 120_000
+  timeoutMs = 120_000,
+  signal?: AbortSignal
 ): Promise<void> {
   const url = ollamaBaseUrl();
   const controller = new AbortController();
+  const abortFromCaller = (): void => controller.abort();
+  if (signal?.aborted) controller.abort();
+  else signal?.addEventListener("abort", abortFromCaller, { once: true });
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
@@ -207,6 +230,7 @@ export async function streamLocal(
     if (error instanceof Error && !["TypeError", "AbortError"].includes(error.name)) throw error;
     throw requestError(error);
   } finally {
+    signal?.removeEventListener("abort", abortFromCaller);
     controller.abort();
     clearTimeout(timeout);
   }

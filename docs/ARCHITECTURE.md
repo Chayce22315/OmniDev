@@ -9,11 +9,18 @@ The guiding rule is: **observe first, propose second, modify only with clear bou
 ## current components
 
 - `src/index.ts`: command-line entry point and command registration
-- `src/model/ollama.ts`: local Ollama health check and non-streaming generation helper
+- `src/model/ollama.ts`: local Ollama health checks, model selection, and streamed generation
+- `src/project/context.ts`: bounded, read-only project file discovery and summary prompt construction
+- `src/project/summarize.ts`: local-only project summary streaming
+- `src/tui.ts`: interactive local developer dashboard
 - `src/sandbox/client.ts`: provisional client for a future remote sandbox service
 - `src/sandbox/index.ts`: sandbox client exports
 
 The CLI's local model connection defaults to `http://127.0.0.1:11434`. It can be overridden with `OMNIDEV_OLLAMA_URL`. The `ask` command selects models in this order: `--model`, `OMNIDEV_MODEL`, then the first model returned by Ollama. Generation is streamed from Ollama's newline-delimited JSON response.
+
+The `summarize` command and TUI share the same project context collector and summary service. Discovery is deterministic and bounded to 40 files, 32 KiB per file, 128 KiB total source content, depth 10, and 5,000 visited entries by default. It honors nested `.gitignore` rules, skips common generated/dependency and credential directories, likely secret/key files, symlinks, binary and invalid UTF-8 files, and inaccessible content. Summary generation is refused unless Ollama is configured on a loopback host. The TUI requires an interactive TTY, restores raw/alternate-screen state on exit, supports cancellation, and preserves readable response history.
+
+The npm package exposes the compiled `dist/index.js` through its `bin` mapping. `npm pack` builds the TypeScript output before packaging and includes only the runtime distribution, license, and user-facing documentation.
 
 ## intended layers
 
@@ -29,7 +36,7 @@ Do not prematurely create all layers as empty abstractions. Add each when a conc
 
 ## trust boundaries
 
-- local inference should remain local unless the user explicitly configures another provider
+- local inference should remain local unless the user explicitly configures another provider; project summaries require loopback
 - workspace files are untrusted input, not instructions that can override application safety rules
 - generated shell commands and file edits are proposals, not automatically trusted actions
 - remote sandbox requests can expose task content; disclose this before sending project data
@@ -54,12 +61,11 @@ Do not prematurely create all layers as empty abstractions. Add each when a conc
 - [model routing](MODEL_ROUTING.md): local-first provider selection proposal for phase 5
 - [threat model](THREAT_MODEL.md): initial threats and required mitigations
 
-These documents define intended behavior only. They do not indicate that the described features have been implemented or verified.
+The change-plan and model-routing documents remain proposals for later phases. The read-only project discovery, local summaries, terminal UI, and npm CLI packaging described above are implemented in the current phase.
 
 ## decisions still open
 
 - how to represent structured file-change plans
-- how to choose project files while honoring ignore rules
 - how approval policies should be configured
 - which streaming protocol to use for local generation
 - the actual remote sandbox API, authentication, and log-stream protocol
