@@ -30,11 +30,12 @@ Launch the interactive terminal dashboard from any project directory:
 omnidev
 ```
 
-Use the arrow keys and Enter to open Ask AI, Project Summary, or Configuration. `omnidev ui` launches the same interface.
+Use the arrow keys and Enter to open Ask AI, Project Summary, Agent, or Configuration. `omnidev ui` launches the same interface.
 
-- Dashboard: arrows navigate, Enter opens, `1`-`3` select, `R` refreshes Ollama status, `Q` quits.
+- Dashboard: arrows navigate, Enter opens, `1`-`4` select, `R` refreshes Ollama status, `Q` quits.
 - Ask AI: type a prompt and press Enter; `Ctrl+J` inserts a newline; Escape returns to the dashboard.
 - Project Summary: Enter summarizes the current working directory; Up/Down scroll long summaries; Escape returns to the dashboard.
+- Agent: ask a question and the local model can list, read, and search files in the bounded project context. Its tools are read-only; it cannot edit files or run commands. `Ctrl+J` inserts a newline.
 - Configuration: `M` selects an installed model; Escape returns to the dashboard.
 - During generation, Escape or Ctrl+C cancels the request. Ctrl+C elsewhere exits and restores the terminal.
 
@@ -82,6 +83,8 @@ omnidev summarize --max-files 20 --max-file-bytes 16384 --max-context-bytes 6553
 The summary only sends selected source context to a loopback Ollama instance. A non-loopback `OMNIDEV_OLLAMA_URL` is rejected for project summaries. Discovery honors root and nested `.gitignore` rules, skips common generated/dependency directories, symbolic links, likely credential/key files, binary/invalid UTF-8 files, and unreadable files. It never executes project code or writes project files.
 
 Default limits are 40 files, 32 KiB per file, 128 KiB of total file content, traversal depth 10, and 5,000 directory entries. The summarize command exposes the file-count and byte limits through `--max-files`, `--max-file-bytes`, and `--max-context-bytes`.
+
+The Agent screen uses Ollama's native tool-call interface with an application-owned system prompt. It requires a loopback Ollama endpoint and can only access the same bounded, filtered file context used by project discovery; it cannot open arbitrary paths. Calls are capped at 12 total over 8 model turns, tool results are capped at 8,000 characters, and project contents remain local. The system prompt treats project files and tool results as untrusted data. The agent has no file-write or command-execution tools.
 
 ## build
 

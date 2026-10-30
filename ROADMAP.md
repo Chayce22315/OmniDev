@@ -77,15 +77,16 @@ Acceptance: generated commands are never silently treated as trusted, and result
 
 ## phase 5: model orchestration
 
-**design first; implementation only after phases 1–4 are dependable**
+**a constrained read-only tool loop is implemented; broader orchestration remains design-first**
 
+- [x] add a bounded local agent loop using an application-owned system prompt and read-only project-context tools
 - [ ] define a provider-neutral model interface
 - [ ] discover locally installed models and their capabilities
 - [ ] define routing rules that prefer available local models
 - [ ] add optional critique/revision workflows with bounded iterations
 - [ ] measure quality and latency before introducing parallel agents
 
-Acceptance: model choice is explainable, bounded, and works without a paid cloud service.
+The implemented Agent screen uses Ollama's native tool-call interface and exposes only bounded file listing, reading, and literal search over already-filtered project context. It has no write or command-execution tools. Acceptance for full model orchestration remains: model choice is explainable, bounded, and works without a paid cloud service.
 
 ## phase 6: remote sandbox pool
 

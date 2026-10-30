@@ -1,6 +1,7 @@
 import { createInterface, emitKeypressEvents } from "node:readline";
 import { realpath } from "node:fs/promises";
 import type { Readable, Writable } from "node:stream";
+import { runAgent } from "./agent.js";
 import {
   checkOllama,
   isLocalOllamaConfigured,
@@ -10,8 +11,8 @@ import {
 import { DEFAULT_PROJECT_LIMITS } from "./project/context.js";
 import { streamProjectSummary } from "./project/summarize.js";
 
-type Screen = "dashboard" | "ask" | "summary" | "config";
-type MessageRole = "you" | "omnidev";
+type Screen = "dashboard" | "ask" | "summary" | "config" | "agent";
+type MessageRole = "you" | "omnidev" | "tool";
 
 interface Message {
   role: MessageRole;
@@ -42,6 +43,7 @@ export interface TuiOptions {
 const menu: Array<{ label: string; screen: Screen; description: string }> = [
   { label: "Ask AI", screen: "ask", description: "Chat with your local model" },
   { label: "Project summary", screen: "summary", description: "Understand the current project" },
+  { label: "Agent", screen: "agent", description: "Ask AI to inspect files with read-only tools" },
   { label: "Configuration", screen: "config", description: "Review connection and context limits" }
 ];
 
@@ -141,9 +143,9 @@ export function renderTuiFrame(
   } else if (screen === "ask") {
     output.push(colorize("✧  Ask AI", "1;36", state.color), "");
     const transcript = state.messages.flatMap((message) => {
-      const label = message.role === "you" ? "you" : "omnidev";
+      const label = message.role === "you" ? "you" : message.role === "tool" ? "tool" : "omnidev";
       return [
-        colorize(label, message.role === "you" ? "36" : "32", state.color),
+        colorize(label, message.role === "you" ? "36" : message.role === "tool" ? "33" : "32", state.color),
         ...wrapText(message.text, innerWidth)
       ];
     });
@@ -153,6 +155,21 @@ export function renderTuiFrame(
     output.push(...visible);
     if (state.busy) output.push("", colorize("Generating...  Esc cancels", "33", state.color));
     output.push("", colorize("Prompt (Enter sends, Ctrl+J adds a line):", "2", state.color));
+    output.push(...wrapText(state.draft || "› ", innerWidth));
+  } else if (screen === "agent") {
+    output.push(colorize("◈  Project agent", "1;36", state.color), "");
+    output.push("Read-only tools: list files, read selected files, search text.");
+    output.push("No file edits or command execution are available.");
+    const transcript = state.messages.flatMap((message) => {
+      const label = message.role === "you" ? "you" : message.role === "tool" ? "tool" : "agent";
+      const code = message.role === "you" ? "36" : message.role === "tool" ? "33" : "32";
+      return [colorize(label, code, state.color), ...wrapText(message.text, innerWidth)];
+    });
+    const available = Math.max(1, height - 14);
+    const scrollPosition = state.scroll < 0 ? Math.max(0, transcript.length - available) : state.scroll;
+    output.push(...transcript.slice(scrollPosition, scrollPosition + available));
+    if (state.busy) output.push("", colorize("Inspecting project with read-only tools...  Esc cancels", "33", state.color));
+    output.push("", colorize("Prompt (Enter runs agent, Ctrl+J adds a line):", "2", state.color));
     output.push(...wrapText(state.draft || "› ", innerWidth));
   } else {
     output.push(colorize("▤  Project summary", "1;36", state.color), "");
@@ -169,9 +186,11 @@ export function renderTuiFrame(
   }
 
   const footer = screen === "dashboard"
-    ? "↑/↓ navigate   Enter open   1-3 select   R refresh   Q quit   Ctrl+C quit"
+    ? "↑/↓ navigate   Enter open   1-4 select   R refresh   Q quit   Ctrl+C quit"
     : screen === "ask"
       ? "Esc dashboard   ↑/↓ scroll   Ctrl+J newline   Enter send   Ctrl+C cancel/quit"
+      : screen === "agent"
+        ? "Esc dashboard   ↑/↓ scroll   Ctrl+J newline   Enter run   Ctrl+C cancel/quit"
       : screen === "summary"
         ? "Esc dashboard   Enter summarize   Ctrl+C cancel/quit"
         : state.selectingModel
@@ -180,8 +199,8 @@ export function renderTuiFrame(
   output.push("", `${"─".repeat(Math.max(0, width - 1))}`, footer);
 
   const visibleLines = output.slice(0, height);
-  if (screen === "ask") {
-    const promptIndex = output.findIndex((line) => line.includes("Prompt (Enter sends"));
+  if (screen === "ask" || screen === "agent") {
+    const promptIndex = output.findIndex((line) => line.includes(screen === "ask" ? "Prompt (Enter sends" : "Prompt (Enter runs agent"));
     const draftLines = wrapText(state.draft || "› ", innerWidth);
     const cursorRow = Math.min(height, promptIndex + draftLines.length + 2);
     const cursorColumn = Math.min(width, (draftLines[draftLines.length - 1]?.length ?? 0) + 1);
@@ -247,7 +266,7 @@ export async function runTui(options: TuiOptions = {}): Promise<void> {
     selectingModel = false;
     refresh();
   };
-  const request = async (prompt: string, summary: boolean): Promise<void> => {
+  const request = async (prompt: string, mode: "chat" | "summary" | "agent"): Promise<void> => {
     if (busy) return;
     busy = true;
     activeController = new AbortController();
@@ -260,7 +279,7 @@ export async function runTui(options: TuiOptions = {}): Promise<void> {
     try {
       if (model === "(no model)") {
         result.text = "No local models found. Install one with `ollama pull <model>` or select a model.";
-      } else if (summary) {
+      } else if (mode === "summary") {
         const summaryResult = await streamProjectSummary(root, model, (chunk) => {
           result.text += chunk;
           refresh();
@@ -268,6 +287,18 @@ export async function runTui(options: TuiOptions = {}): Promise<void> {
         result.text += `\n\n${summaryResult.fileCount} files from ${summaryResult.root}` +
           (summaryResult.skippedFiles ? `; ${summaryResult.skippedFiles} skipped` : "") +
           (summaryResult.truncated ? "; discovery limits reached" : "");
+      } else if (mode === "agent") {
+        const agentResult = await runAgent(prompt, model, {
+          root,
+          signal: controller.signal,
+          onToolCall: ({ name, detail }) => {
+            const toolMessage = { role: "tool" as const, text: `${name}${detail ? `: ${detail}` : ""}` };
+            const resultIndex = messages.indexOf(result);
+            messages.splice(resultIndex < 0 ? messages.length : resultIndex, 0, toolMessage);
+            refresh();
+          }
+        });
+        result.text = agentResult.response;
       } else {
         await streamLocal(prompt, model, (chunk) => {
           result.text += chunk;
@@ -308,7 +339,7 @@ export async function runTui(options: TuiOptions = {}): Promise<void> {
     }
 
     if (screen !== "dashboard" && key.name === "escape") {
-      if (screen === "ask") {
+      if (screen === "ask" || screen === "agent") {
         screen = "dashboard";
         draft = "";
       } else if (screen === "config" && selectingModel) {
@@ -323,14 +354,14 @@ export async function runTui(options: TuiOptions = {}): Promise<void> {
     if (screen === "dashboard") {
       if (key.name === "up") selectedMenu = (selectedMenu + menu.length - 1) % menu.length;
       else if (key.name === "down") selectedMenu = (selectedMenu + 1) % menu.length;
-      else if (value >= "1" && value <= "3") selectedMenu = Number(value) - 1;
+      else if (value >= "1" && value <= "4") selectedMenu = Number(value) - 1;
       else if (value.toLowerCase() === "r") void updateStatus().then(refresh);
       else if (key.name === "return") {
         screen = menu[selectedMenu]?.screen ?? "ask";
         messages = [];
         scroll = -1;
       } else if (value.toLowerCase() === "q" || key.name === "escape") finish();
-    } else if (screen === "ask") {
+    } else if (screen === "ask" || screen === "agent") {
       if (key.ctrl && key.name === "j") draft += "\n";
       else if (key.name === "backspace") draft = draft.slice(0, -1);
       else if (key.name === "up") {
@@ -356,7 +387,7 @@ export async function runTui(options: TuiOptions = {}): Promise<void> {
         const prompt = draft.trim();
         if (prompt) {
           draft = "";
-          void request(prompt, false);
+          void request(prompt, screen === "agent" ? "agent" : "chat");
         }
       } else if (value && !key.ctrl && value !== "\u001b") draft += value;
     } else if (screen === "summary") {
@@ -373,7 +404,7 @@ export async function runTui(options: TuiOptions = {}): Promise<void> {
         messages = [];
         void request(
           "Summarize the project structure, purpose, technologies, important components, and available run/test commands based only on the discovered project files.",
-          true
+          "summary"
         );
       }
     } else if (screen === "config") {

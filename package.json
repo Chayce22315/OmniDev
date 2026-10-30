@@ -34,7 +34,7 @@
     "dev": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
     "prepare": "npm run build",
-    "test": "tsx --test test/ollama.test.ts test/project.test.ts test/tui.test.ts test/cli.test.ts test/package.test.ts",
+    "test": "tsx --test test/ollama.test.ts test/project.test.ts test/agent.test.ts test/tui.test.ts test/cli.test.ts test/package.test.ts",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json"
   },
