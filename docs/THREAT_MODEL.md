@@ -1,6 +1,6 @@
 # initial threat model
 
-**status: design guidance; read-only project discovery controls are implemented and covered by tests. Phase 3+ controls remain proposals.**
+**status: design guidance; read-only discovery and bounded local agent tools are implemented and covered by tests. Phase 3+ write and execution controls remain proposals.**
 
 ## assets to protect
 
@@ -22,6 +22,8 @@ model output can be incorrect, manipulative, or malformed. treat it as data, not
 source files, comments, readmes, dependency scripts, and test fixtures can contain prompt injection or malicious instructions. content read from a repository must never override application rules or user approval requirements.
 
 Phase 2 sends only selected, bounded project context to loopback Ollama for a summary. The summarization prompt explicitly treats repository content as untrusted data. Discovery skips `.gitignore`-excluded files, common generated/dependency and credential directories, likely credential/key files, symlinks, binary/invalid UTF-8 files, and content beyond configured limits. It does not execute project code or write files.
+
+The Agent screen uses an application-owned system prompt and a deterministic allowlist of read-only tools over the same bounded context. It requires a loopback Ollama endpoint, caps tool calls, turns, and result size, and cannot read paths excluded from discovery, write files, or run commands. Project content remains untrusted even when returned by a tool; the model may still produce inaccurate or manipulated answers.
 
 ### local tools
 
@@ -45,6 +47,8 @@ the sandbox client is only a provisional handshake scaffold. a real service need
 | accidental secret disclosure | skip likely credential/key files and directories, redact sensitive errors, avoid prompt/log secrets, and require loopback for project summaries |
 | malicious or malformed model response | schema validation; fail closed; do not execute raw model output |
 | request sent to wrong endpoint | explicit provider configuration; safe local defaults; reject non-loopback endpoints for project summaries |
+| model requests arbitrary filesystem or command access | execute only a fixed read-only tool allowlist over the prefiltered in-memory context; reject unsafe paths; do not expose write or execution tools |
+| agent loops or returns excessive tool output | cap model turns, total tool calls, and per-result characters; support request cancellation |
 | sandbox verification-code guessing | short-lived lease binding, rate limiting, one-time use, server-side authorization |
 | sandbox resource exhaustion | server-side cpu, memory, time, storage, and concurrency quotas |
 | interrupted multi-file edit | backups or transaction journal; report partial failures; support recovery |
